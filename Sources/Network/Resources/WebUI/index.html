@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HDR Analyzer Pro — Scope Layout</title>
+  <style>
+    :root {
+      --bg: #1a1a1e;
+      --panel: #252530;
+      --border: #3a3a45;
+      --text: #e8e8ed;
+      --muted: #8888a0;
+      --accent: #4a9eff;
+      --accent-hover: #6bb3ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+    .status {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .status.connected { color: #4ade80; }
+    main {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 320px;
+    }
+    .quadrant {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .quadrant label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .quadrant select {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .quadrant select:hover { border-color: var(--accent); }
+    .quadrant select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+    }
+    .preview {
+      flex: 1;
+      min-height: 80px;
+      background: var(--bg);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .stream-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .stream-section label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .stream-container {
+      min-height: 200px;
+      background: var(--bg);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .stream-container img {
+      max-width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+    }
+    .stream-container .placeholder {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.secondary {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button.secondary:hover { border-color: var(--accent); }
+    #loginOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #loginOverlay.visible { display: flex; }
+    .login-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      min-width: 280px;
+    }
+    .login-box h2 { font-size: 1rem; margin: 0 0 16px 0; color: var(--text); }
+    .login-box input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+    .login-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .login-box .error { color: #f87171; font-size: 0.85rem; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div id="loginOverlay" aria-label="Login">
+    <div class="login-box">
+      <h2>Web UI login</h2>
+      <p class="error" id="loginError" style="display: none;"></p>
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      <button type="button" id="loginSubmit">Log in</button>
+    </div>
+  </div>
+  <header>
+    <h1>HDR Analyzer Pro — Scope Layout</h1>
+    <span class="status" id="status">Loading…</span>
+  </header>
+  <main>
+    <section class="stream-section" style="margin-bottom: 8px;">
+      <label>Input source & colorspace (NET-007)</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px;">Input source</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <select id="inputDevice" style="width: 100%; padding: 8px 10px; font-size: 0.9rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"></select>
+            <select id="inputFormat" style="width: 100%; padding: 8px 10px; font-size: 0.9rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"></select>
+            <div class="actions">
+              <button type="button" class="secondary" id="inputApply">Apply input</button>
+              <button type="button" class="secondary" id="inputRefresh">Refresh</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px;">Colorspace</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <select id="colorspaceSelect" style="width: 100%; padding: 8px 10px; font-size: 0.9rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"></select>
+            <div class="actions">
+              <button type="button" class="secondary" id="colorspaceApply">Apply colorspace</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <p style="color: var(--muted); font-size: 0.9rem;">Set which scope or video appears in each quadrant. Changes are sent to the app when you apply.</p>
+    <div class="grid">
+      <div class="quadrant">
+        <label>Quadrant 1</label>
+        <select id="q1" data-q="1">
+          <option value="Video">Video</option>
+          <option value="Waveform">Waveform</option>
+          <option value="Vectorscope">Vectorscope</option>
+          <option value="Histogram">Histogram</option>
+          <option value="RGB Parade">RGB Parade</option>
+          <option value="CIE xy">CIE xy</option>
+        </select>
+        <div class="preview" id="preview1">—</div>
+      </div>
+      <div class="quadrant">
+        <label>Quadrant 2</label>
+        <select id="q2" data-q="2">
+          <option value="Video">Video</option>
+          <option value="Waveform">Waveform</option>
+          <option value="Vectorscope">Vectorscope</option>
+          <option value="Histogram">Histogram</option>
+          <option value="RGB Parade">RGB Parade</option>
+          <option value="CIE xy">CIE xy</option>
+        </select>
+        <div class="preview" id="preview2">—</div>
+      </div>
+      <div class="quadrant">
+        <label>Quadrant 3</label>
+        <select id="q3" data-q="3">
+          <option value="Video">Video</option>
+          <option value="Waveform">Waveform</option>
+          <option value="Vectorscope">Vectorscope</option>
+          <option value="Histogram">Histogram</option>
+          <option value="RGB Parade">RGB Parade</option>
+          <option value="CIE xy">CIE xy</option>
+        </select>
+        <div class="preview" id="preview3">—</div>
+      </div>
+      <div class="quadrant">
+        <label>Quadrant 4</label>
+        <select id="q4" data-q="4">
+          <option value="Video">Video</option>
+          <option value="Waveform">Waveform</option>
+          <option value="Vectorscope">Vectorscope</option>
+          <option value="Histogram">Histogram</option>
+          <option value="RGB Parade">RGB Parade</option>
+          <option value="CIE xy">CIE xy</option>
+        </select>
+        <div class="preview" id="preview4">—</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="apply">Apply layout</button>
+      <button type="button" class="secondary" id="refresh">Refresh from app</button>
+    </div>
+    <div class="stream-section">
+      <label>Scope display stream (live)</label>
+      <div class="stream-container" id="streamContainer">
+        <img id="scopeStream" src="" alt="Scope display" style="display: none;">
+        <span class="placeholder" id="streamPlaceholder">Start capture in the app to see scope.</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="secondary" id="streamPause">Pause</button>
+        <button type="button" class="secondary" id="streamResume" style="display: none;">Resume</button>
+      </div>
+    </div>
+  </main>
+  <script>
+    const API = '/api/layout';
+    const SCOPE_JPEG = '/api/scope/jpeg';
+    const API_INPUT = '/api/input';
+    const API_COLORSPACE = '/api/colorspace';
+    const API_LOGIN = '/api/auth/login';
+    const selects = [document.getElementById('q1'), document.getElementById('q2'), document.getElementById('q3'), document.getElementById('q4')];
+    const previews = [document.getElementById('preview1'), document.getElementById('preview2'), document.getElementById('preview3'), document.getElementById('preview4')];
+    const statusEl = document.getElementById('status');
+    const scopeImg = document.getElementById('scopeStream');
+    const streamPlaceholder = document.getElementById('streamPlaceholder');
+    const streamContainer = document.getElementById('streamContainer');
+    const loginOverlay = document.getElementById('loginOverlay');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginError = document.getElementById('loginError');
+    let streamInterval = null;
+    let streamPaused = false;
+
+    const fetchOpts = { credentials: 'include' };
+
+    function showLogin(err) {
+      loginOverlay.classList.add('visible');
+      loginError.style.display = err ? 'block' : 'none';
+      loginError.textContent = err || '';
+      loginPassword.value = '';
+      loginPassword.focus();
+    }
+    function hideLogin() {
+      loginOverlay.classList.remove('visible');
+      loginError.style.display = 'none';
+    }
+    function checkAuth(r) {
+      if (r.status === 401) {
+        showLogin('Session expired or login required.');
+        return false;
+      }
+      return true;
+    }
+
+    function setStatus(msg, ok) {
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('connected', !!ok);
+    }
+
+    function updatePreviews() {
+      selects.forEach((sel, i) => { previews[i].textContent = sel.value; });
+    }
+
+    async function getLayout() {
+      const r = await fetch(API, fetchOpts);
+      if (!checkAuth(r)) throw new Error('Unauthorized');
+      if (!r.ok) throw new Error(r.statusText);
+      const data = await r.json();
+      return data;
+    }
+
+    async function postLayout(layout) {
+      const r = await fetch(API, {
+        ...fetchOpts,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(layout)
+      });
+      if (!checkAuth(r)) throw new Error('Unauthorized');
+      if (!r.ok) throw new Error(r.statusText);
+    }
+
+    function layoutFromSelects() {
+      return {
+        quadrant1: selects[0].value,
+        quadrant2: selects[1].value,
+        quadrant3: selects[2].value,
+        quadrant4: selects[3].value
+      };
+    }
+
+    function applyLayoutToSelects(layout) {
+      if (layout.quadrant1) selects[0].value = layout.quadrant1;
+      if (layout.quadrant2) selects[1].value = layout.quadrant2;
+      if (layout.quadrant3) selects[2].value = layout.quadrant3;
+      if (layout.quadrant4) selects[3].value = layout.quadrant4;
+      updatePreviews();
+    }
+
+    async function load() {
+      try {
+        const layout = await getLayout();
+        hideLogin();
+        applyLayoutToSelects(layout);
+        setStatus('Connected', true);
+      } catch (e) {
+        if (e.message === 'Unauthorized') return;
+        setStatus('Disconnected', false);
+      }
+      updatePreviews();
+    }
+
+    document.getElementById('apply').addEventListener('click', async () => {
+      try {
+        await postLayout(layoutFromSelects());
+        setStatus('Layout applied', true);
+      } catch (e) {
+        setStatus('Apply failed', false);
+      }
+    });
+
+    document.getElementById('refresh').addEventListener('click', load);
+
+    // NET-007: Input source
+    async function getInput() {
+      const r = await fetch(API_INPUT, fetchOpts);
+      if (!checkAuth(r)) throw new Error('Unauthorized');
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    }
+    async function postInput(deviceIndex, modeIndex) {
+      const r = await fetch(API_INPUT, {
+        ...fetchOpts,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceIndex, modeIndex })
+      });
+      if (!checkAuth(r)) throw new Error('Unauthorized');
+      if (!r.ok) throw new Error(r.statusText);
+    }
+    function loadInput() {
+      getInput().then(data => {
+        const deviceSel = document.getElementById('inputDevice');
+        const formatSel = document.getElementById('inputFormat');
+        deviceSel.innerHTML = '';
+        (data.devices || []).forEach((dev, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = dev.name || 'Device ' + i;
+          deviceSel.appendChild(opt);
+        });
+        const di = Math.max(0, Math.min((data.selectedDeviceIndex ?? 0), (data.devices || []).length - 1));
+        deviceSel.value = String(di);
+        const modes = (data.devices && data.devices[di] && data.devices[di].modes) ? data.devices[di].modes : [];
+        formatSel.innerHTML = '';
+        modes.forEach((m, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = m.name || (m.width + '×' + m.height + ' ' + m.frameRate + ' fps');
+          formatSel.appendChild(opt);
+        });
+        const mi = Math.max(0, Math.min((data.selectedModeIndex ?? 0), modes.length - 1));
+        formatSel.value = String(mi);
+      }).catch(() => {});
+    }
+    function onInputDeviceChange() {
+      getInput().then(data => {
+        const deviceSel = document.getElementById('inputDevice');
+        const formatSel = document.getElementById('inputFormat');
+        const di = parseInt(deviceSel.value, 10) || 0;
+        const modes = (data.devices && data.devices[di] && data.devices[di].modes) ? data.devices[di].modes : [];
+        formatSel.innerHTML = '';
+        modes.forEach((m, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = m.name || (m.width + '×' + m.height + ' ' + m.frameRate + ' fps');
+          formatSel.appendChild(opt);
+        });
+        formatSel.value = '0';
+      }).catch(() => {});
+    }
+    document.getElementById('inputDevice').addEventListener('change', onInputDeviceChange);
+    document.getElementById('inputApply').addEventListener('click', async () => {
+      try {
+        const deviceIndex = parseInt(document.getElementById('inputDevice').value, 10) || 0;
+        const modeIndex = parseInt(document.getElementById('inputFormat').value, 10) || 0;
+        await postInput(deviceIndex, modeIndex);
+        setStatus('Input applied', true);
+      } catch (e) { setStatus('Input apply failed', false); }
+    });
+    document.getElementById('inputRefresh').addEventListener('click', () => { loadInput(); setStatus('Input refreshed', true); });
+
+    // NET-007: Colorspace
+    async function getColorspace() {
+      const r = await fetch(API_COLORSPACE, fetchOpts);
+      if (!checkAuth(r)) throw new Error('Unauthorized');
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    }
+    async function postColorspace(colorspace) {
+      const r = await fetch(API_COLORSPACE, {
+        ...fetchOpts,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colorspace })
+      });
+      if (!checkAuth(r)) throw new Error('Unauthorized');
+      if (!r.ok) throw new Error(r.statusText);
+    }
+    function loadColorspace() {
+      getColorspace().then(data => {
+        const sel = document.getElementById('colorspaceSelect');
+        sel.innerHTML = '';
+        (data.options || []).forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt;
+          sel.appendChild(o);
+        });
+        sel.value = data.current || 'rec709';
+      }).catch(() => {});
+    }
+    document.getElementById('colorspaceApply').addEventListener('click', async () => {
+      try {
+        const colorspace = document.getElementById('colorspaceSelect').value;
+        await postColorspace(colorspace);
+        setStatus('Colorspace applied', true);
+      } catch (e) { setStatus('Colorspace apply failed', false); }
+    });
+
+    selects.forEach(s => s.addEventListener('change', updatePreviews));
+
+    function updateScopeStream() {
+      if (streamPaused) return;
+      scopeImg.src = SCOPE_JPEG + '?t=' + Date.now();
+    }
+    scopeImg.onload = function() {
+      scopeImg.style.display = '';
+      streamPlaceholder.style.display = 'none';
+    };
+    scopeImg.onerror = function() {
+      scopeImg.style.display = 'none';
+      streamPlaceholder.textContent = 'Scope stream unavailable (start capture in app or log in).';
+      streamPlaceholder.style.display = '';
+    };
+    function startStream() {
+      if (streamInterval) return;
+      streamInterval = setInterval(updateScopeStream, 200);
+      updateScopeStream();
+    }
+    function stopStream() {
+      if (streamInterval) {
+        clearInterval(streamInterval);
+        streamInterval = null;
+      }
+      scopeImg.src = '';
+      scopeImg.style.display = 'none';
+      streamPlaceholder.textContent = 'Paused. Click Resume to see scope.';
+      streamPlaceholder.style.display = '';
+    }
+    document.getElementById('streamPause').addEventListener('click', function() {
+      streamPaused = true;
+      stopStream();
+      document.getElementById('streamPause').style.display = 'none';
+      document.getElementById('streamResume').style.display = '';
+    });
+    document.getElementById('streamResume').addEventListener('click', function() {
+      streamPaused = false;
+      document.getElementById('streamResume').style.display = 'none';
+      document.getElementById('streamPause').style.display = '';
+      startStream();
+    });
+    startStream();
+
+    document.getElementById('loginSubmit').addEventListener('click', async () => {
+      const password = loginPassword.value;
+      loginError.style.display = 'none';
+      if (!password) {
+        loginError.textContent = 'Enter password';
+        loginError.style.display = 'block';
+        return;
+      }
+      try {
+        const r = await fetch(API_LOGIN, {
+          ...fetchOpts,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = r.ok ? await r.json().catch(() => ({})) : null;
+        if (r.ok && data && data.ok) {
+          hideLogin();
+          load();
+          loadInput();
+          loadColorspace();
+          if (!streamPaused) startStream();
+        } else {
+          loginError.textContent = r.status === 401 ? 'Invalid password' : (r.statusText || 'Login failed');
+          loginError.style.display = 'block';
+        }
+      } catch (e) {
+        loginError.textContent = 'Network error';
+        loginError.style.display = 'block';
+      }
+    });
+    loginPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginSubmit').click();
+    });
+
+    load();
+    loadInput();
+    loadColorspace();
+  </script>
+</body>
+</html>
