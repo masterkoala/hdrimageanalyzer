@@ -33,6 +33,3 @@ Or open `Package.swift` in Xcode and use the **HDRAnalyzerProApp** scheme.
 swift test
 ```
 
-## License
-
-Replace or add a `LICENSE` file for your distribution; third-party headers (DeckLink, NDI SDK paths under `Vendor/`) remain under their respective vendors’ terms.
